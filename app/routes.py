@@ -1,5 +1,6 @@
-from flask import render_template, flash, redirect, url_for
-from flask_login import current_user, login_user
+from flask import render_template, flash, redirect, url_for, request
+from flask_login import current_user, login_user, logout_user, login_required
+from werkzeug.urls import url_parse
 from app import app
 from app.forms import LoginForm
 from app.models import User
@@ -7,6 +8,7 @@ from app.models import User
 
 @app.route('/')
 @app.route('/index')
+@login_required
 def index():
     user = {'username': 'Miguel'}
     posts = [
@@ -28,13 +30,22 @@ def login():
         return redirect(url_for('index'))
     form = LoginForm()
 
-    if form.validate_on_submit():
-        user = User.query.filter_by(username=form.username.data).first()
-        if (user is None) or (not user.check_password(form.password.data)):
-            flash('Invalid username or password')
-            return redirect(url_for('login'))
+    if form.validate_on_submit():                                           # If form validate == True
+        user = User.query.filter_by(username=form.username.data).first()    # Get the users info
+        if user is None or not user.check_password(form.password.data):     # If user info is empty or user password is wrong
+            flash('Invalid username or password')                           # Flash message
+            return redirect(url_for('login'))                               # And redirect to the login page again
 
-        login_user(user, remember=form.remember_me.data)
-        return redirect(url_for('index'))
+        login_user(user, remember=form.remember_me.data)                    # Else log the user
+        next_page = request.args.get('next')                                # Get the next value in url
+        if not next_page or url_parse(next_page).netloc != '':              # If next value is empty or next value is set to a full URL
+            next_page = url_for('index')                                    # Redirect to Index page
+        return redirect(next_page)
+
     return render_template('login.html', title='Sign In', form=form)
 
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
