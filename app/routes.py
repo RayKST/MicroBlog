@@ -30,6 +30,12 @@ def index():
     return render_template("index.html", title='Home Page', form=form,
                            posts=posts)
 
+@app.route('/explore')
+@login_required
+def explore():
+    posts = Post.query.order_by(Post.timestamp.desc()).all()
+    return render_template('index.html', title='Explore', posts=posts)
+
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -71,6 +77,7 @@ def register():
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
+
 
 @app.route('/user/<username>')
 @login_required
@@ -118,6 +125,7 @@ def follow(username):
         return redirect(url_for('user', username=username))
     else:
         return redirect(url_for('index'))
+
 
 @app.route('/unfollow/<username>', methods=['POST'])
 @login_required
